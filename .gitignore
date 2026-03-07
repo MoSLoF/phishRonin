@@ -4,9 +4,13 @@ out/
 
 # API keys and secrets
 config/api_keys.json
+config/ronin.config.json
 config/*.local.json
 .env
 .env.*
+
+# Investigation artifacts
+ThreatSandbox/
 
 # Claude Code
 .claude/
