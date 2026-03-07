@@ -1,0 +1,31 @@
+# Output / investigation artifacts
+out/
+*.eml
+
+# API keys and secrets
+config/api_keys.json
+config/*.local.json
+.env
+.env.*
+
+# Claude Code
+.claude/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PowerShell temp
+*.tmp
+
+# ZXing library (downloaded at runtime)
+lib/zxing/
+
+# IntelOwl integration (local dev)
+IntelOwl/

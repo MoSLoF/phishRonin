@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>phishRonin Triage Report</title>
+  <style>
+:root {
+  --hb-bg: #070a12;
+  --hb-panel: rgba(255,255,255,0.06);
+  --hb-panel-2: rgba(255,255,255,0.04);
+  --hb-border: rgba(255,255,255,0.12);
+  --hb-text: #e6edf3;
+  --hb-muted: rgba(230,237,243,0.68);
+  --hb-accent: #f59e0b;
+  --hb-accent-2: #fbbf24;
+  --hb-good: #22c55e;
+  --hb-warn: #f59e0b;
+  --hb-bad: #ef4444;
+  --hb-code-bg: #0b1020;
+  --hb-shadow: 0 12px 30px rgba(0,0,0,.35);
+  --hb-radius: 18px;
+  --hb-neon: #6cf6ff;
+  --hb-mag: #ff4fd8;
+  --hb-amber: #ffcc33;
+  --hb-lime: #73ff7a;
+  --hb-red: #ff4b4b;
+  --hb-glow: 0 0 18px rgba(245,158,11,.35), 0 0 32px rgba(34,211,238,.18);
+}
+* { box-sizing: border-box; }
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  margin: 24px; line-height: 1.45; color: var(--hb-text); min-height: 100vh;
+  background:
+    radial-gradient(1200px 800px at 20% 10%, rgba(34,211,238,.12), transparent 55%),
+    radial-gradient(900px 700px at 80% 30%, rgba(167,139,250,.10), transparent 52%),
+    radial-gradient(1200px 900px at 40% 110%, rgba(245,158,11,.10), transparent 60%),
+    linear-gradient(180deg, #050713 0%, #070a12 50%, #050713 100%);
+}
+@media (prefers-reduced-motion: reduce){
+  .scanline, .gridfx, .glitch, .hb-anim{ animation: none !important; transition: none !important; }
+}
+a { color: var(--hb-accent-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* cinematic background layers */
+.gridfx{
+  position: fixed; inset: 0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(1200px 700px at 20% 15%, rgba(108,246,255,.10), transparent 60%),
+    radial-gradient(900px 600px at 85% 20%, rgba(255,79,216,.08), transparent 55%),
+    radial-gradient(1100px 800px at 40% 85%, rgba(115,255,122,.06), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0, rgba(255,255,255,.02) 1px, transparent 1px, transparent 28px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.02) 0, rgba(255,255,255,.02) 1px, transparent 1px, transparent 28px);
+  mix-blend-mode: screen; filter: saturate(1.1);
+}
+.scanline{
+  position: fixed; inset: -50% 0; pointer-events:none; z-index:0;
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,.06), transparent);
+  animation: hb-scan 6.5s linear infinite; opacity:.35;
+}
+@keyframes hb-scan{ from{ transform: translateY(-25%);} to{ transform: translateY(25%);} }
+
+/* header */
+.hb-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 16px 18px; border: 1px solid var(--hb-border); border-radius: calc(var(--hb-radius) + 6px);
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+  box-shadow: 0 20px 60px rgba(0,0,0,.45); backdrop-filter: blur(8px); margin-bottom: 16px;
+  position: sticky; top: 0; z-index: 50; overflow: hidden;
+}
+.hb-header:before{
+  content:""; position:absolute; inset:-2px;
+  background: radial-gradient(700px 250px at 20% 10%, rgba(245,158,11,.22), transparent 60%),
+    radial-gradient(700px 250px at 85% 50%, rgba(34,211,238,.16), transparent 62%),
+    linear-gradient(90deg, rgba(167,139,250,.10), rgba(245,158,11,.10));
+  filter: blur(0px); opacity:.9; pointer-events:none;
+}
+.hb-header > *{ position:relative; }
+.hb-brand { display: flex; align-items: center; gap: 14px; min-width: 240px; }
+.hb-logo { width: 62px; height: 62px; border-radius: 14px; border: 1px solid var(--hb-border); background: rgba(0,0,0,.25); box-shadow: 0 8px 18px rgba(0,0,0,.35); padding: 8px; }
+.hb-title { display: flex; flex-direction: column; gap: 3px; letter-spacing:.4px; text-shadow: var(--hb-glow); }
+.hb-title h1 { margin: 0; font-size: 22px; letter-spacing: .2px; line-height: 1.15; }
+.hb-title .hb-sub { color: var(--hb-muted); font-size: 13px; }
+.hb-subtitle { color: rgba(230,237,243,.70); }
+.hb-tagline { color: var(--hb-muted); font-size: 12.5px; text-align: right; }
+.hb-tagline b { color: var(--hb-accent-2); font-weight: 600; }
+
+/* glitch text */
+.hb-glitch { position: relative; display:inline-block; }
+.hb-glitch:before, .hb-glitch:after { content: attr(data-text); position:absolute; left:0; top:0; width:100%; opacity:.55; clip-path: inset(0 0 0 0); pointer-events:none; }
+.hb-glitch:before { transform: translate(1px, -1px); color: var(--hb-neon); animation: glitch 3.2s infinite linear alternate-reverse; }
+.hb-glitch:after { transform: translate(-1px, 1px); color: var(--hb-mag); animation: glitch 2.6s infinite linear alternate; }
+@keyframes glitch{
+  0%{ clip-path: inset(0 0 85% 0); } 12%{ clip-path: inset(22% 0 40% 0); } 24%{ clip-path: inset(72% 0 12% 0); }
+  36%{ clip-path: inset(45% 0 45% 0); } 48%{ clip-path: inset(12% 0 68% 0); } 60%{ clip-path: inset(80% 0 4% 0); }
+  72%{ clip-path: inset(52% 0 18% 0); } 84%{ clip-path: inset(10% 0 70% 0); } 100%{ clip-path: inset(0 0 85% 0); }
+}
+
+/* card */
+.card {
+  border: 1px solid var(--hb-border); border-radius: var(--hb-radius); padding: 16px; margin-bottom: 14px;
+  background: linear-gradient(180deg, var(--hb-panel), var(--hb-panel-2));
+  box-shadow: 0 14px 40px rgba(0,0,0,.35); backdrop-filter: blur(8px);
+}
+.card:hover { box-shadow: 0 18px 54px rgba(0,0,0,.42); }
+.card .card { background: rgba(255,255,255,.04); border-radius: 14px; border-color: rgba(255,255,255,.10); box-shadow: none; }
+
+.row { display: flex; gap: 14px; flex-wrap: wrap; }
+
+/* pill */
+.pill {
+  display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px;
+  border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid var(--hb-border);
+  margin-right: 8px; font-size: 12px; letter-spacing: .25px;
+  box-shadow: 0 0 0 rgba(0,0,0,0); transition: transform .12s ease, filter .12s ease;
+}
+.pill:before { content: ""; width: 8px; height: 8px; border-radius: 999px; background: rgba(245,158,11,.55); box-shadow: 0 0 0 3px rgba(245,158,11,.12); }
+.pill:hover { transform: translateY(-1px); filter: brightness(1.05); }
+.bad { background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.35); }
+.bad:before { background: rgba(239,68,68,.85); box-shadow: 0 0 0 3px rgba(239,68,68,.18); }
+.ok { background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.35); }
+.ok:before { background: rgba(34,197,94,.85); box-shadow: 0 0 0 3px rgba(34,197,94,.18); }
+.warn { background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.35); }
+.warn:before { background: rgba(245,158,11,.85); box-shadow: 0 0 0 3px rgba(245,158,11,.18); }
+
+pre { white-space: pre-wrap; word-wrap: break-word; background: var(--hb-code-bg); color: var(--hb-text); padding: 12px; border-radius: 14px; overflow: auto; border: 1px solid rgba(255,255,255,.10); }
+h2 { margin: 0 0 10px 0; font-size: 16px; letter-spacing: .2px; }
+table { width: 100%; border-collapse: collapse; }
+td, th { border-bottom: 1px solid rgba(255,255,255,.08); padding: 8px; text-align: left; vertical-align: top; }
+th { color: rgba(230,237,243,.80); font-weight: 600; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12.5px; }
+.muted { color: var(--hb-muted); }
+details > summary { cursor: pointer; user-select: none; }
+#verdict .pill { font-size: 12.5px; font-weight: 700; letter-spacing: .8px; }
+
+/* layout */
+.hb-layout { display:grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; max-width: 1280px; margin: 0 auto; padding: 12px 14px 40px; }
+@media (max-width: 980px){ .hb-layout{ grid-template-columns: 1fr; } .hb-sidebar{ position: static !important; } }
+
+/* sidebar */
+.hb-sidebar { position: sticky; top: 14px; align-self:start; border: 1px solid var(--hb-border); background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); backdrop-filter: blur(10px); border-radius: var(--hb-radius); padding: 14px; box-shadow: 0 18px 42px rgba(0,0,0,.35); }
+.hb-nav-title { display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 10px; }
+.hb-kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; padding: 4px 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; color: rgba(230,237,243,.8); background: rgba(0,0,0,.22); }
+.hb-nav a { display:flex; align-items:center; justify-content:space-between; padding: 10px; margin: 6px 0; border-radius: 14px; text-decoration:none; color: rgba(230,237,243,.88); border: 1px solid transparent; background: rgba(0,0,0,.12); transition: transform .12s ease, border-color .12s ease, background .12s ease; }
+.hb-nav a:hover { transform: translateY(-1px); border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.08); }
+.hb-nav .count { font-size: 12px; color: rgba(230,237,243,.70); padding: 2px 8px; border: 1px solid rgba(255,255,255,.10); border-radius: 999px; background: rgba(0,0,0,.18); }
+.hb-main { min-width:0; }
+
+/* stats */
+.hb-stats { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 12px 0 16px; }
+@media (max-width: 720px){ .hb-stats{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hb-stat { border: 1px solid rgba(255,255,255,.12); background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.14)); border-radius: var(--hb-radius); padding: 12px; }
+.hb-stat .k { font-size: 12px; color: rgba(230,237,243,.68); }
+.hb-stat .v { font-size: 20px; font-weight: 700; margin-top: 4px; }
+.hb-stat .t { font-size: 12px; color: rgba(230,237,243,.70); margin-top: 2px; }
+
+/* progress bar */
+.hb-progress { position: fixed; top:0; left:0; height:3px; width:0%; z-index: 9999; background: linear-gradient(90deg, var(--hb-neon), var(--hb-mag), var(--hb-lime)); box-shadow: 0 0 18px rgba(108,246,255,.35); }
+
+/* IOC tools */
+.hb-ioc-tools { display:flex; flex-wrap:wrap; gap: 10px; margin: 10px 0 4px; }
+.hb-input { flex: 1 1 260px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.18); color: var(--hb-text); outline: none; }
+.hb-btn { padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(245,158,11,.10); color: rgba(230,237,243,.92); cursor:pointer; transition: transform .12s ease, background .12s ease, border-color .12s ease; }
+.hb-btn:hover { transform: translateY(-1px); background: rgba(245,158,11,.16); border-color: rgba(245,158,11,.35); }
+
+/* toast */
+.hb-toast { position: fixed; right: 14px; bottom: 14px; z-index: 9999; display:flex; flex-direction:column; gap: 10px; }
+.hb-toast .t { border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.35); backdrop-filter: blur(10px); border-radius: 16px; padding: 10px 12px; box-shadow: 0 18px 46px rgba(0,0,0,.45); color: rgba(230,237,243,.92); max-width: 420px; animation: toastIn .18s ease-out; }
+@keyframes toastIn{ from{ transform: translateY(6px); opacity:0; } to{ transform: translateY(0); opacity:1; } }
+
+/* command palette */
+.hb-cmdk { position: fixed; inset:0; z-index: 9998; display:none; align-items:flex-start; justify-content:center; padding: 10vh 14px 14px; background: rgba(0,0,0,.55); }
+.hb-cmdk.open { display:flex; }
+.hb-cmdk .panel { width: min(880px, 96vw); border-radius: 20px; border: 1px solid rgba(255,255,255,.16); background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.35)); backdrop-filter: blur(14px); box-shadow: 0 30px 90px rgba(0,0,0,.55); overflow:hidden; }
+.hb-cmdk .top { padding: 12px; border-bottom: 1px solid rgba(255,255,255,.10); display:flex; gap: 10px; align-items:center; }
+.hb-cmdk input { width: 100%; padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.20); color: var(--hb-text); outline: none; }
+.hb-cmdk .list { max-height: 52vh; overflow:auto; }
+.hb-cmdk .item { padding: 10px 12px; display:flex; justify-content:space-between; gap: 10px; cursor:pointer; border-bottom: 1px solid rgba(255,255,255,.06); }
+.hb-cmdk .item:hover, .hb-cmdk .item.active { background: rgba(245,158,11,.10); }
+.hb-cmdk .left { min-width:0; }
+.hb-cmdk .label { font-weight: 650; }
+.hb-cmdk .meta { font-size:12px; color: rgba(230,237,243,.68); white-space:nowrap; }
+
+section { scroll-margin-top: 90px; }
+
+/* timeline */
+.timeline { position: relative; padding: 14px 4px 8px; }
+.timeline:before { content:""; position:absolute; left: 14px; top: 10px; bottom: 10px; width: 2px; background: linear-gradient(var(--hb-neon), rgba(255,255,255,.08)); opacity:.7; }
+.tl-item { position:relative; padding: 10px 12px 10px 44px; margin: 10px 0; border-radius: 14px; border: 1px solid rgba(255,255,255,.08); background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.15)); }
+.tl-item:before { content:""; position:absolute; left: 8px; top: 16px; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fff, var(--hb-neon)); box-shadow: 0 0 14px rgba(108,246,255,.35); }
+.tl-time { font-size: 12px; opacity:.85; }
+.tl-title { font-weight: 800; letter-spacing:.2px; margin-top:2px; }
+.tl-body { opacity:.9; margin-top:6px; line-height:1.35; }
+
+/* MITRE matrix */
+.mitre-grid { display:grid; grid-template-columns: repeat(6, minmax(180px, 1fr)); gap: 10px; overflow:auto; padding-bottom: 6px; }
+.mitre-col { border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: rgba(255,255,255,.02); min-width: 180px; }
+.mitre-col h3 { margin: 10px 12px 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .14em; opacity:.9; }
+.tech { margin: 0 10px 10px; padding: 8px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.18); cursor: pointer; user-select:none; }
+.tech.on { border-color: rgba(108,246,255,.35); box-shadow: 0 0 0 1px rgba(108,246,255,.25), 0 0 18px rgba(108,246,255,.10); background: linear-gradient(180deg, rgba(108,246,255,.12), rgba(0,0,0,.18)); }
+.tech small { display:block; opacity:.8; margin-top:2px; }
+
+/* identity & notes */
+.hb-ident { display:flex; flex-wrap:wrap; gap:10px; margin-top: 12px; }
+.hb-ident .field { flex: 1 1 220px; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: rgba(255,255,255,.02); padding: 10px 12px; }
+.hb-ident label { display:block; font-size: 11px; opacity:.85; letter-spacing:.12em; text-transform:uppercase; }
+.hb-ident input, .hb-ident select { width:100%; margin-top:6px; padding: 9px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,.10); background: rgba(0,0,0,.22); color: inherit; outline: none; }
+.hb-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top: 10px; }
+.hb-actions .btn { flex: 0 0 auto; }
+.notes { width:100%; min-height: 140px; resize: vertical; border-radius: 14px; padding: 12px; border: 1px solid rgba(255,255,255,.10); background: rgba(0,0,0,.22); color: inherit; }
+
+/* OSINT specific */
+.osint-ip-card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.10); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+.osint-ip-card h4 { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; margin-bottom: 8px; color: var(--hb-accent-2); }
+.osint-ip-card .orow { display: flex; gap: 8px; margin-bottom: 4px; font-size: 13px; }
+.osint-ip-card .olbl { color: var(--hb-muted); min-width: 100px; }
+.osint-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin: 2px 4px 2px 0; }
+.osint-badge.ob-bad { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.4); color: var(--hb-bad); }
+.osint-badge.ob-warn { background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.4); color: var(--hb-warn); }
+.osint-badge.ob-ok { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.4); color: var(--hb-good); }
+.osint-badge.ob-info { background: rgba(108,246,255,.08); border: 1px solid rgba(108,246,255,.3); color: var(--hb-neon); }
+.osint-badge.ob-muted { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12); color: var(--hb-muted); }
+.abuse-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); margin-top: 4px; overflow: hidden; }
+.abuse-bar .fill { height: 100%; border-radius: 3px; }
+.pivot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.pivot-item { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.10); border-radius: 14px; padding: 10px 14px; }
+.pivot-item .ioc { font-family: monospace; font-size: 13px; word-break: break-all; margin-bottom: 6px; }
+.pivot-item .links a { margin-right: 10px; font-size: 12px; }
+
+/* briefing mode */
+.hb-header-actions { margin-left:auto; display:flex; gap:10px; align-items:center; }
+.hb-header-actions .hb-btn { padding:8px 10px; font-size:12px; }
+.hb-pill { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(10,12,18,.6); }
+.hb-briefing { display:none; padding:16px; margin:14px 0 22px; border-radius:16px; border:1px solid rgba(255,255,255,.14); background:linear-gradient(180deg, rgba(20,24,40,.72), rgba(10,12,18,.55)); box-shadow:0 18px 60px rgba(0,0,0,.35); }
+.hb-brief-grid { display:grid; grid-template-columns: 1.35fr .65fr; gap:14px; }
+@media (max-width: 960px){ .hb-brief-grid{grid-template-columns:1fr;} }
+.hb-brief-h { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.hb-brief-title { font-size:18px; font-weight:900; letter-spacing:.25px; }
+.hb-brief-sub { font-size:12px; opacity:.78; margin-top:4px; }
+.hb-brief-kpis { display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; }
+.hb-brief-kpis .hb-pill b { font-weight:900; }
+.hb-brief-card { padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(10,12,18,.35); }
+.hb-brief-card h3 { margin:0 0 10px; font-size:12px; letter-spacing:.18em; text-transform:uppercase; opacity:.8; }
+.hb-brief-list { margin:0; padding-left:18px; }
+.hb-brief-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.hb-chip { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; padding:6px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(8,10,16,.55); cursor:pointer; user-select:none; }
+.hb-chip:hover { transform: translateY(-1px); transition: transform .12s ease; }
+
+body.briefing-mode .hb-sidebar { display:none !important; }
+body.briefing-mode .hb-layout { grid-template-columns: 1fr !important; }
+body.briefing-mode #hbBriefing { display:block; }
+body.briefing-mode .hb-main > section:not(#hbBriefing) { display:none !important; }
+body.briefing-mode .hb-progress { opacity:.55; }
+
+/* Exec/Ops mode */
+body.exec-mode .card details,
+body.exec-mode .notes,
+body.exec-mode .hb-ident,
+body.exec-mode #rawsec,
+body.exec-mode .hb-actions { display:none !important; }
+body.exec-mode pre { max-height:200px; }
+
+/* Poster mode */
+body.poster-mode .hb-sidebar { display:none !important; }
+body.poster-mode .hb-layout { grid-template-columns:1fr !important; max-width:1100px; }
+body.poster-mode .hb-main { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+body.poster-mode .hb-main > section { margin:0; }
+body.poster-mode #rawsec { grid-column:1/-1; }
+@media (max-width:960px){ body.poster-mode .hb-main { grid-template-columns:1fr; } }
+
+/* print */
+@media print {
+  :root { --bg: #fff; }
+  body { background:#fff !important; color:#111 !important; }
+  .hb-sidebar, .hb-progress, .gridfx, .scanline, .cmdk, #hbToast, .no-print { display:none !important; }
+  .card { break-inside: avoid; page-break-inside: avoid; background: #fff !important; box-shadow: none !important; border: 1px solid #e5e7eb !important; color:#111 !important; }
+  .hb-header { position: static !important; box-shadow: none !important; border-bottom: 1px solid #ddd !important; background: #fff !important; }
+  a { color:#111 !important; text-decoration: none !important; }
+  .muted { color:#444 !important; }
+  pre { background: #0b1020 !important; color: #e6edf3 !important; }
+  body.briefing-mode .hb-header-actions, body.briefing-mode #hbProgress { display:none !important; }
+}
+</style>
+</head>
+<body>
+<div class="hb-progress" id="hbProgress"></div>
+<div class="gridfx"></div>
+<div class="scanline"></div>
+
+<div class="hb-cmdk" id="hbCmdk" aria-hidden="true">
+  <div class="panel" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="top">
+      <span class="hb-kbd">Ctrl</span><span class="hb-kbd">K</span>
+      <input id="hbCmdkInput" placeholder="Search sections, actions, IOCs... (Enter to jump / copy)" autocomplete="off" />
+      <span class="hb-kbd">Esc</span>
+    </div>
+    <div class="list" id="hbCmdkList"></div>
+  </div>
+</div>
+
+<div class="hb-toast" id="hbToast"></div>
+
+<header class="hb-header">
+  <div class="hb-brand">
+    <img class="hb-logo" alt="phishRonin" src="data:image/png;base64,{{LOGO_B64}}" />
+    <div class="hb-title">
+      <h1><span class="hb-glitch" data-text="phishRonin">phishRonin</span><span class="hb-subtitle"> Triage Report</span></h1>
+      <div class="hb-sub">HoneyBadger Flare Edition</div>
+    </div>
+  </div>
+  <div class="hb-tagline">
+    <div><b>GhostBadger</b> Signal over noise</div>
+    <div class="muted" style="margin-top:2px;">Shareable single-file HTML</div>
+  </div>
+</header>
+
+<div class="hb-layout">
+  <aside class="hb-sidebar">
+    <div class="hb-nav-title">
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <div style="font-weight:800; letter-spacing:.3px;">Ops Navigator</div>
+        <div class="muted" style="font-size:12px;">Jump fast. Ctrl+K for palette.</div>
+      </div>
+      <div class="hb-kbd">Ctrl K</div>
+    </div>
+    <nav class="hb-nav" id="hbNav">
+      <a href="#overview"><span>Overview</span><span class="count" id="c_overview"></span></a>
+      <a href="#timeline"><span>Timeline</span><span class="count" id="c_timeline"></span></a>
+      <a href="#mitre"><span>MITRE</span><span class="count" id="c_mitre"></span></a>
+      <a href="#message"><span>Message</span><span class="count" id="c_message"></span></a>
+      <a href="#authsec"><span>Auth &amp; Actions</span><span class="count" id="c_actions"></span></a>
+      <a href="#osintsec"><span>OSINT Intel</span><span class="count" id="c_osint"></span></a>
+      <a href="#attachmentssec"><span>Attachments</span><span class="count" id="c_attachments"></span></a>
+      <a href="#iocssec"><span>IOCs</span><span class="count" id="c_iocs"></span></a>
+      <a href="#rawsec"><span>Raw Evidence</span><span class="count" id="c_raw"></span></a>
+    </nav>
+    <div style="margin-top:12px; border-top:1px solid rgba(255,255,255,.10); padding-top:12px;">
+      <div class="muted" style="font-size:12px; margin-bottom:8px;">Quick tools</div>
+      <button class="hb-btn" id="hbCopyAllIocs" type="button" style="width:100%;">Copy all IOCs</button>
+      <button class="hb-btn" id="hbExportJson" type="button" style="margin-top:8px; width:100%;">Export evidence.json</button>
+    </div>
+  </aside>
+
+  <main class="hb-main">
+
+  <section id="overview">
+    <div class="muted" id="meta"></div>
+    <div class="hb-stats" id="hbStats"></div>
+  </section>
+
+  <section id="timeline">
+    <div class="card">
+      <div class="row" style="align-items:center;justify-content:space-between;gap:12px">
+        <h2 style="margin:0">Threat Timeline</h2>
+        <div class="hb-actions no-print" style="margin:0">
+          <button class="hb-btn" id="btnRebuildTimeline">Rebuild</button>
+          <button class="hb-btn" id="btnPrint">Print Casefile</button>
+        </div>
+      </div>
+      <div class="muted" style="margin-top:8px">Auto-extracted timestamps from evidence. Click to jump to source.</div>
+      <div class="timeline" id="hbTimeline"></div>
+    </div>
+  </section>
+
+  <section id="mitre">
+    <div class="card">
+      <div class="row" style="align-items:flex-end;justify-content:space-between;gap:12px">
+        <div>
+          <h2 style="margin:0">MITRE ATT&amp;CK Overlay</h2>
+          <div class="muted" style="margin-top:8px">Toggle techniques to mark suspected behavior. Stored locally.</div>
+        </div>
+        <div class="hb-actions no-print" style="margin:0">
+          <button class="hb-btn" id="btnAutoMitre">Auto-map</button>
+          <button class="hb-btn" id="btnClearMitre">Clear</button>
+        </div>
+      </div>
+      <div class="hb-ident" style="margin-top:12px">
+        <div class="field"><label>Analyst</label><input id="fAnalyst" placeholder="e.g., badger0ps" /></div>
+        <div class="field"><label>Case ID</label><input id="fCaseId" placeholder="e.g., HB-2026-0219-0042" /></div>
+        <div class="field"><label>Incident Name</label><input id="fIncident" placeholder="e.g., Invoice lure / OAuth abuse" /></div>
+        <div class="field"><label>Environment</label><select id="fEnv"><option>Prod</option><option>Dev</option><option>Test</option><option>Lab</option></select></div>
+        <div class="field"><label>Confidence</label><select id="fConfidence"><option>Low</option><option selected>Medium</option><option>High</option><option>Confirmed</option></select></div>
+      </div>
+      <div class="hb-actions no-print">
+        <button class="hb-btn" id="btnSaveIdent">Save Identity</button>
+        <button class="hb-btn" id="btnExportEvidence">Export evidence.json</button>
+        <button class="hb-btn" id="btnCopyAllIocs2">Copy All IOCs</button>
+      </div>
+      <div class="mitre-grid" id="mitreGrid" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <section id="message">
+    <div class="row">
+      <div class="card" style="flex:1; min-width:280px;">
+        <h2>Verdict</h2>
+        <div id="verdict"></div>
+        <div id="score"></div>
+        <ul id="reasons"></ul>
+      </div>
+      <div class="card" style="flex:2; min-width:340px;">
+        <h2>Message</h2>
+        <table><tbody id="msg"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section id="authsec">
+    <div class="row">
+      <div class="card" style="flex:1; min-width:280px;">
+        <h2>Auth</h2>
+        <div id="auth"></div>
+        <h2 style="margin-top:14px;">Suggested Actions</h2>
+        <ul id="actions"></ul>
+      </div>
+      <div class="card" style="flex:2; min-width:340px;">
+        <h2>Received Chain</h2>
+        <div id="received"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="osintsec">
+    <div class="card">
+      <h2>OSINT Intelligence</h2>
+      <div id="threat-class"></div>
+      <div id="ip-profiles"></div>
+      <div id="domain-profiles"></div>
+      <h3 style="margin:16px 0 8px;font-size:14px;color:var(--hb-muted);">Pivot Links</h3>
+      <div id="pivot-links" class="pivot-grid"></div>
+      <div id="osint-notes" style="margin-top:12px;"></div>
+    </div>
+  </section>
+
+  <section id="attachmentssec">
+    <div class="card">
+      <div class="row" style="align-items:flex-end;justify-content:space-between;gap:12px">
+        <div>
+          <h2 style="margin:0">Evidence Locker</h2>
+          <div class="muted" style="margin-top:8px">Reorder attachments, add operator notes. Persisted in browser storage.</div>
+        </div>
+        <div class="hb-actions no-print" style="margin:0">
+          <label class="hb-btn" style="cursor:pointer">Add Local File<input id="fileAdd" type="file" multiple style="display:none" /></label>
+          <button class="hb-btn" id="btnClearNotes">Clear Notes</button>
+        </div>
+      </div>
+      <div class="hb-ident" style="margin-top:12px">
+        <div class="field" style="flex:1 1 100%">
+          <label>Operator Notes</label>
+          <textarea class="notes" id="hbNotes" placeholder="Findings, hypothesis, next actions, containment notes..."></textarea>
+        </div>
+      </div>
+      <div class="row" style="align-items:center;justify-content:space-between;gap:12px;margin-top:8px">
+        <div class="muted">Attachments (drag to reorder)</div>
+        <div class="muted" id="attCount"></div>
+      </div>
+      <div id="attachments" class="hb-anim"></div>
+    </div>
+  </section>
+
+  <section id="iocssec">
+    <div class="card">
+      <h2>IOCs
+        <div class="hb-ioc-tools">
+          <input class="hb-input" id="hbIocFilter" placeholder="Filter IOCs (type: ip, domain, url, hash, email...)" />
+          <button class="hb-btn" id="hbIocClear" type="button">Clear</button>
+        </div>
+      </h2>
+      <div id="iocs"></div>
+    </div>
+  </section>
+
+  <section id="rawsec">
+    <details class="card">
+      <summary><b>Raw Evidence (JSON)</b></summary>
+      <pre id="raw"></pre>
+    </details>
+  </section>
+
+  </main>
+</div>
+
+<!-- Script 1: Base data rendering -->
+<script>
+const evidence = {{EVIDENCE_JSON}};
+const pill = (txt, cls="") => `<span class="pill ${cls}">${txt}</span>`;
+const esc = s => s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
+const obadge = (t,c) => `<span class="osint-badge ob-${c}">${t}</span>`;
+
+// Meta
+document.getElementById("meta").textContent = `CaseId: ${evidence.Meta?.CaseId||""} | Timestamp: ${evidence.Meta?.Timestamp||""} | Analyst: ${evidence.Meta?.Analyst||""}`;
+
+// Verdict
+const v = evidence.Score?.Verdict || "unknown";
+const score = evidence.Score?.Total ?? 0;
+const vCls = v === "malicious" ? "bad" : (v === "suspicious" ? "warn" : "ok");
+document.getElementById("verdict").innerHTML = pill(v.toUpperCase(), vCls);
+document.getElementById("score").innerHTML = `
+  <div style="margin-top:8px; display:flex; align-items:center; gap:10px;">Score: <b>${score}</b>/100</div>
+  <div style="margin-top:10px; height:10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); overflow:hidden;">
+    <div style="height:100%; width:${Math.max(0,Math.min(100,score))}%; background: linear-gradient(90deg, rgba(34,197,94,.9), rgba(245,158,11,.95), rgba(239,68,68,.9));"></div>
+  </div>`;
+
+// Reasons
+const reasons = document.getElementById("reasons");
+(evidence.Score?.Reasons||[]).forEach(r => { const li=document.createElement("li"); li.textContent=r; reasons.appendChild(li); });
+
+// Message
+const row = (k, val) => `<tr><th style="width:160px;">${k}</th><td>${esc(val)}</td></tr>`;
+document.getElementById("msg").innerHTML = [
+  row("From", evidence.Message?.From), row("Reply-To", evidence.Message?.ReplyTo),
+  row("Return-Path", evidence.Message?.ReturnPath),
+  row("To", (evidence.Message?.To||[]).join(", ")),
+  row("Subject", evidence.Message?.Subject), row("Date", evidence.Message?.Date),
+  row("Message-ID", evidence.Message?.MessageId)
+].join("");
+
+// Auth
+const auth = evidence.Auth || {};
+const authPill = (name, val) => { const cls = val==="pass"?"ok":(val==="fail"?"bad":"warn"); return `<div style="margin-bottom:8px;"><b>${name}</b>: ${pill(val||"unknown",cls)}</div>`; };
+document.getElementById("auth").innerHTML = authPill("SPF",auth.Spf)+authPill("DKIM",auth.Dkim)+authPill("DMARC",auth.Dmarc);
+
+// Actions
+(evidence.Actions?.Suggested||[]).forEach(a => { const li=document.createElement("li"); li.textContent=a; document.getElementById("actions").appendChild(li); });
+
+// Received
+const hops = evidence.Received?.Hops || [];
+document.getElementById("received").innerHTML = hops.length ? hops.map((h,idx) =>
+  `<div style="margin-bottom:10px;">${pill("#"+(idx+1))} ${pill("from")} ${esc(h.From)}<br/>${pill("by")} ${esc(h.By)}<br/><span class="muted">${esc(h.Date)}</span></div>`
+).join("") : `<div class="muted">No Received hops parsed.</div>`;
+
+// OSINT
+const O = evidence.Osint || {};
+const tc = O.ThreatClassification || {};
+if (tc.OverallType && tc.OverallType !== 'unknown') {
+  const tcC = ['bulletproof','tor'].includes(tc.OverallType)?'bad':tc.OverallType==='vps'?'warn':'info';
+  document.getElementById("threat-class").innerHTML = `<div style="margin-bottom:14px">
+    ${obadge(tc.OverallType.toUpperCase()+' INFRASTRUCTURE',tcC)} ${obadge(tc.Confidence+' confidence','muted')}
+    <ul style="margin-top:8px;padding-left:20px;color:var(--hb-muted);font-size:13px">
+      ${(tc.Indicators||[]).map(i=>`<li>${esc(i)}</li>`).join('')}
+    </ul></div>`;
+}
+
+// IP Profiles
+const ips = O.IpProfiles || [];
+if (ips.length) {
+  let osintCount = 0;
+  document.getElementById("ip-profiles").innerHTML = '<h3 style="margin:0 0 10px;font-size:14px;color:var(--hb-muted);">IP Profiles</h3>' +
+    ips.filter(i=>i.Classification?.InfraType!=='private').map(ip => {
+      osintCount++;
+      const geo = ip.Geolocation||{}, net = ip.Network||{}, cls = ip.Classification||{}, ab = ip.AbuseIpDb||{}, sh = ip.Shodan||{};
+      const abColor = ab.Score>75?'var(--hb-bad)':ab.Score>50?'var(--hb-warn)':ab.Score>25?'#d29922':'var(--hb-good)';
+      return `<div class="osint-ip-card">
+        <h4>${esc(ip.Ip)} ${ip.ReverseDns?`<span style="font-weight:400;font-size:12px;color:var(--hb-muted)">(${esc(ip.ReverseDns)})</span>`:''}</h4>
+        ${geo.Country?`<div class="orow"><span class="olbl">Location</span><span>${esc(geo.City)}, ${esc(geo.Region)}, ${esc(geo.Country)}</span></div>`:''}
+        ${net.Isp?`<div class="orow"><span class="olbl">ISP / ASN</span><span>${esc(net.Isp)} ${net.Asn?obadge(net.Asn,'muted'):''}</span></div>`:''}
+        <div class="orow" style="gap:6px;margin-top:6px">
+          ${cls.IsHosting?obadge('HOSTING','warn'):''}${cls.IsProxy?obadge('PROXY','bad'):''}${cls.IsMobile?obadge('MOBILE','info'):''}
+          ${!cls.IsHosting&&!cls.IsProxy&&!cls.IsMobile?obadge('CLEAN','ok'):''}
+        </div>
+        ${ab.Score>0?`<div style="margin-top:8px;font-size:12px">AbuseIPDB: <b>${ab.Score}%</b> confidence (${ab.Reports} reports)<div class="abuse-bar"><div class="fill" style="width:${ab.Score}%;background:${abColor}"></div></div></div>`:''}
+        ${sh.Ports?.length?`<div style="margin-top:6px;font-size:12px">Shodan ports: ${sh.Ports.map(p=>obadge(p,'muted')).join('')}</div>`:''}
+      </div>`;
+    }).join('');
+  const ce = document.getElementById("c_osint"); if(ce) ce.textContent = osintCount;
+}
+
+// Domain Profiles
+const doms = O.DomainProfiles || [];
+if (doms.length) {
+  document.getElementById("domain-profiles").innerHTML = '<h3 style="margin:16px 0 10px;font-size:14px;color:var(--hb-muted);">Domain Profiles</h3>' +
+    doms.map(dp => {
+      const w = dp.Whois||{};
+      const ageBadge = w.AgeInDays>=0?(w.AgeInDays<30?obadge(w.AgeInDays+'d old','bad'):w.AgeInDays<365?obadge(w.AgeInDays+'d old','warn'):obadge(w.AgeInDays+'d old','ok')):'';
+      return `<div class="osint-ip-card"><h4>${esc(dp.Domain)} ${ageBadge}</h4>
+        ${w.Registrar?`<div class="orow"><span class="olbl">Registrar</span><span>${esc(w.Registrar)}</span></div>`:''}
+        ${w.CreatedDate?`<div class="orow"><span class="olbl">Created</span><span>${esc(w.CreatedDate)}</span></div>`:''}
+        ${w.ExpiresDate?`<div class="orow"><span class="olbl">Expires</span><span>${esc(w.ExpiresDate)}</span></div>`:''}
+      </div>`;
+    }).join('');
+}
+
+// Pivot Links
+const pl = O.PivotLinks || [];
+if (pl.length) {
+  document.getElementById("pivot-links").innerHTML = pl.map(p => {
+    const links = Object.entries(p.Links||{}).map(([k,u])=>`<a href="${u}" target="_blank" rel="noopener">${k}</a>`).join(' ');
+    return `<div class="pivot-item">${obadge(p.Type,'info')}<div class="ioc">${esc(p.Ioc)}</div><div class="links">${links}</div></div>`;
+  }).join('');
+}
+
+// OSINT Notes
+const osintNotes = O.Notes || [];
+if (osintNotes.length) {
+  document.getElementById("osint-notes").innerHTML = osintNotes.map(n=>`<div style="font-size:12px;color:var(--hb-muted)">* ${esc(n)}</div>`).join('');
+}
+
+// Attachments
+const atts = evidence.Attachments || [];
+const attachDiv = document.getElementById("attachments");
+if (!atts.length) {
+  attachDiv.innerHTML = `<div class="muted">No attachments analyzed.</div>`;
+} else {
+  attachDiv.innerHTML = atts.map(a => {
+    const f = a.Findings || {};
+    return `<div class="card" style="box-shadow:none;">
+      <div><b>${esc(a.Path)}</b> <span class="muted">(${esc(a.Type)})</span></div>
+      ${a.Type==="docx"?`<div style="margin-top:8px;">
+        ${pill("sha256")} <code>${f.Sha256||""}</code><br/>
+        ${pill("external rels")} <b>${f.ExternalRelationships??0}</b>
+        ${pill("embedded objects")} <b>${f.EmbeddedObjects??0}</b>
+        ${pill("urls")} <b>${f.SuspiciousUrls??0}</b>
+      </div>`:`<div class="muted" style="margin-top:8px;">${esc(f.Note||"")}</div>`}
+    </div>`;
+  }).join("");
+}
+
+// IOCs
+const iocs = evidence.Iocs || {};
+const list = (title, arr) => { arr=arr||[]; return `<div style="margin-bottom:12px;"><b>${title}</b><br/>${arr.length?arr.map(x=>`<div><code>${esc(x)}</code></div>`).join(""):`<div class="muted">None</div>`}</div>`; };
+document.getElementById("iocs").innerHTML = list("Domains",iocs.Domains)+list("URLs",iocs.Urls)+list("IPs",iocs.Ips)+list("Hashes",iocs.Hashes);
+
+// Copy-to-clipboard on IOC click
+document.querySelectorAll("#iocs code").forEach(el => {
+  el.style.cursor = "copy"; el.title = "Click to copy";
+  el.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(el.textContent); el.style.outline="2px solid rgba(251,191,36,.55)"; setTimeout(()=>(el.style.outline="none"), 450); } catch(_){}
+  });
+});
+
+// Raw
+document.getElementById("raw").textContent = JSON.stringify(evidence, null, 2);
+</script>
+
+<!-- Script 2: EPIC mode enhancements -->
+<script>
+(function(){
+  const $ = (q, el=document) => el.querySelector(q);
+  const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
+
+  // Scroll progress
+  const prog = $("#hbProgress");
+  const setProg = () => { const h=document.documentElement; const max=(h.scrollHeight-h.clientHeight)||1; if(prog) prog.style.width=((h.scrollTop/max)*100).toFixed(2)+"%"; };
+  document.addEventListener("scroll", setProg, {passive:true});
+  window.addEventListener("resize", setProg);
+  setProg();
+
+  // Toast
+  const toastBox = $("#hbToast");
+  window.toast = (msg) => {
+    const t=document.createElement("div"); t.className="t"; t.textContent=msg; toastBox.appendChild(t);
+    setTimeout(()=>{t.style.opacity="0";t.style.transform="translateY(6px)";},2200);
+    setTimeout(()=>t.remove(),2500);
+  };
+  window.hbToast = window.toast;
+
+  // Stats
+  const safeLen = (x) => (Array.isArray(x)?x.length:(x&&typeof x==="object"?Object.keys(x).length:0));
+  const iocObj = evidence.IOCs||evidence.Iocs||{};
+  const attachmentsArr = evidence.Attachments||[];
+  const reasonsArr = evidence.Score?.Reasons||[];
+  const iocCount = Array.isArray(iocObj)?iocObj.length:Object.values(iocObj).reduce((a,v)=>a+(Array.isArray(v)?v.length:0),0);
+  const statItems = [
+    {k:"Verdict",v:(evidence.Score?.Verdict||"unknown").toUpperCase(),t:`Score: ${evidence.Score?.Total??0}`},
+    {k:"IOCs",v:iocCount,t:"Copy-ready artifacts"},
+    {k:"Attachments",v:safeLen(attachmentsArr),t:"Files observed"},
+    {k:"Signals",v:safeLen(reasonsArr),t:"Why it scored this way"},
+  ];
+  $("#hbStats").innerHTML = statItems.map(s=>`<div class="hb-stat"><div class="k">${s.k}</div><div class="v">${s.v}</div><div class="t">${s.t}</div></div>`).join("");
+
+  // Sidebar counts
+  const setCount = (id,val)=>{ const el=document.getElementById(id); if(el) el.textContent=val; };
+  setCount("c_overview","#");
+  setCount("c_message","@");
+  setCount("c_attachments",safeLen(attachmentsArr));
+  setCount("c_iocs",iocCount);
+  setCount("c_actions",safeLen(evidence.Actions?.Suggested||[])||"!");
+  setCount("c_raw","{}");
+
+  // IOC filter
+  const iocFilter=$("#hbIocFilter"), iocClear=$("#hbIocClear"), iocsRoot=$("#iocs");
+  const applyFilter=()=>{ if(!iocsRoot)return; const q=(iocFilter?.value||"").trim().toLowerCase(); $$("div,code,li,tr,.pill",iocsRoot).forEach(n=>{if(!q){n.style.display="";}else{n.style.display=(n.textContent||"").toLowerCase().includes(q)?"":"none";}}); };
+  if(iocFilter) iocFilter.addEventListener("input",applyFilter);
+  if(iocClear) iocClear.addEventListener("click",()=>{iocFilter.value="";applyFilter();iocFilter.focus();});
+
+  // Copy all IOCs
+  const collectIocsText=()=>{let out=[];const pushArr=(arr,prefix="")=>{if(Array.isArray(arr))arr.forEach(x=>{if(x!=null)out.push(prefix+String(x));});};if(iocObj&&!Array.isArray(iocObj)){for(const[k,v]of Object.entries(iocObj))pushArr(v,k+": ");}else{pushArr(iocObj);}return Array.from(new Set(out)).join("\n");};
+  const copyText=async(txt)=>{try{await navigator.clipboard.writeText(txt);toast("Copied to clipboard.");return true;}catch(e){const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();toast("Copied to clipboard.");return true;}};
+
+  $("#hbCopyAllIocs")?.addEventListener("click",async()=>{const txt=collectIocsText();if(!txt){toast("No IOCs found.");return;}await copyText(txt);toast(`Copied ${txt.split("\n").length} IOC(s).`);});
+
+  // Export JSON
+  $("#hbExportJson")?.addEventListener("click",()=>{const blob=new Blob([JSON.stringify(evidence,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`evidence-${evidence.Meta?.CaseId||"triage"}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200);toast("Export started.");});
+
+  // Click copy feedback
+  document.addEventListener("click",(e)=>{const t=e.target;if(!(t instanceof HTMLElement))return;if(t.classList.contains("copy")||t.closest(".copy"))toast("Artifact copied.");});
+
+  // Command palette
+  const cmdk=$("#hbCmdk"),cmdkInput=$("#hbCmdkInput"),cmdkList=$("#hbCmdkList");
+  const sections=[
+    {label:"Overview",meta:"Jump",action:()=>location.hash="#overview"},
+    {label:"Timeline",meta:"Jump",action:()=>location.hash="#timeline"},
+    {label:"MITRE ATT&CK",meta:"Jump",action:()=>location.hash="#mitre"},
+    {label:"Message",meta:"Jump",action:()=>location.hash="#message"},
+    {label:"Auth & Actions",meta:"Jump",action:()=>location.hash="#authsec"},
+    {label:"OSINT Intel",meta:"Jump",action:()=>location.hash="#osintsec"},
+    {label:"Attachments",meta:"Jump",action:()=>location.hash="#attachmentssec"},
+    {label:"IOCs",meta:"Jump",action:()=>location.hash="#iocssec"},
+    {label:"Raw Evidence",meta:"Jump",action:()=>location.hash="#rawsec"},
+  ];
+  const buildCmdItems=()=>{let iocItems=[];const txt=collectIocsText();if(txt){iocItems=txt.split("\n").slice(0,120).map(v=>({label:v.length>80?(v.slice(0,77)+"..."):v,meta:"Copy IOC",action:()=>copyText(v.replace(/^[^:]+:\s*/,""))}));}return[...sections,...iocItems];};
+  let cmdItems=buildCmdItems(),active=0;
+  const renderCmd=(q="")=>{const s=q.trim().toLowerCase();const filtered=cmdItems.filter(it=>(it.label||"").toLowerCase().includes(s));if(!filtered.length){cmdkList.innerHTML=`<div class="item"><div class="left"><div class="label">No matches</div></div><div class="meta">Esc</div></div>`;return[];}active=0;cmdkList.innerHTML=filtered.map((it,i)=>`<div class="item ${i===0?"active":""}" data-i="${i}"><div class="left" style="min-width:0;"><div class="label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.label}</div></div><div class="meta">${it.meta||""}</div></div>`).join("");return filtered;};
+  let currentFiltered=renderCmd("");
+  const openCmdk=()=>{cmdItems=buildCmdItems();currentFiltered=renderCmd("");cmdk.classList.add("open");cmdk.setAttribute("aria-hidden","false");setTimeout(()=>cmdkInput.focus(),0);};
+  const closeCmdk=()=>{cmdk.classList.remove("open");cmdk.setAttribute("aria-hidden","true");};
+  document.addEventListener("keydown",(e)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(cmdk.classList.contains("open"))closeCmdk();else openCmdk();}else if(e.key==="Escape"&&cmdk.classList.contains("open")){e.preventDefault();closeCmdk();}});
+  cmdk.addEventListener("click",(e)=>{if(e.target===cmdk)closeCmdk();});
+  cmdkInput.addEventListener("input",()=>{currentFiltered=renderCmd(cmdkInput.value||"");});
+  cmdkInput.addEventListener("keydown",(e)=>{const items=Array.from(cmdkList.querySelectorAll(".item"));if(!items.length)return;if(e.key==="ArrowDown"){e.preventDefault();active=Math.min(active+1,items.length-1);}else if(e.key==="ArrowUp"){e.preventDefault();active=Math.max(active-1,0);}else if(e.key==="Enter"){e.preventDefault();const it=currentFiltered[active];if(it&&typeof it.action==="function"){closeCmdk();it.action();}return;}else{return;}items.forEach((n,i)=>n.classList.toggle("active",i===active));items[active]?.scrollIntoView({block:"nearest"});});
+  cmdkList.addEventListener("click",(e)=>{const item=e.target.closest(".item");if(!item)return;const i=parseInt(item.getAttribute("data-i")||"0",10);const it=currentFiltered[i];if(it&&typeof it.action==="function"){closeCmdk();it.action();}});
+})();
+</script>
+
+<!-- Script 3: Identity, Notes, Drag reorder, Timeline, MITRE overlay -->
+<script>
+(function(){
+  const $=(q,el=document)=>el.querySelector(q);
+  const $$=(q,el=document)=>Array.from(el.querySelectorAll(q));
+  const store={get(k,d=null){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+  function escapeHtml(s){return(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+
+  // Identity
+  const identKey="hb_ident_v1";
+  const f={analyst:$("#fAnalyst"),caseId:$("#fCaseId"),incident:$("#fIncident"),env:$("#fEnv"),conf:$("#fConfidence")};
+  function loadIdent(){const v=store.get(identKey,{});if(f.analyst)f.analyst.value=v.analyst||"";if(f.caseId)f.caseId.value=v.caseId||"";if(f.incident)f.incident.value=v.incident||"";if(f.env)f.env.value=v.env||"Prod";if(f.conf)f.conf.value=v.confidence||"Medium";const t=document.querySelector("title");if(t&&v.caseId)t.textContent=`phishRonin Casefile — ${v.caseId}`;}
+  function saveIdent(){const v={analyst:f.analyst?.value||"",caseId:f.caseId?.value||"",incident:f.incident?.value||"",env:f.env?.value||"Prod",confidence:f.conf?.value||"Medium"};store.set(identKey,v);if(typeof window.toast==="function")window.toast("Identity saved");}
+  $("#btnSaveIdent")?.addEventListener("click",saveIdent);
+  loadIdent();
+
+  // Notes
+  const notesKey="hb_notes_v1";
+  const notes=$("#hbNotes");
+  function loadNotes(){if(notes)notes.value=store.get(notesKey,"");}
+  function saveNotes(){if(notes)store.set(notesKey,notes.value||"");}
+  notes?.addEventListener("input",saveNotes);
+  $("#btnClearNotes")?.addEventListener("click",()=>{if(notes){notes.value="";saveNotes();if(typeof window.toast==="function")window.toast("Notes cleared");}});
+  loadNotes();
+
+  // Attachments drag reorder + local files
+  const localFilesKey="hb_local_files_v1";
+  const fileInput=$("#fileAdd"),attWrap=$("#attachments");
+  function renderLocalFiles(){if(!attWrap)return;$$(".hb-local-file",attWrap).forEach(n=>n.remove());let lf=store.get(localFilesKey,[]);if(lf.length){const hdr=document.createElement("div");hdr.className="pill hb-local-file";hdr.style.margin="10px 0";hdr.textContent="LOCAL FILES (not embedded)";attWrap.prepend(hdr);lf.slice().reverse().forEach(name=>{const el=document.createElement("div");el.className="ioc hb-local-file";el.setAttribute("draggable","true");el.style.marginBottom="8px";el.innerHTML=`<span class="pill">LOCAL</span><span>${escapeHtml(name)}</span>`;attWrap.prepend(el);});}$("#attCount")?.replaceChildren(document.createTextNode(`${$$(".card,.ioc",attWrap).length||0} items`));}
+  fileInput?.addEventListener("change",()=>{const files=Array.from(fileInput.files||[]).map(f=>f.name);if(!files.length)return;const cur=store.get(localFilesKey,[]);store.set(localFilesKey,Array.from(new Set(cur.concat(files))));renderLocalFiles();if(typeof window.toast==="function")window.toast(`Added ${files.length} local file(s)`);fileInput.value="";});
+
+  let dragEl=null;
+  function enableDrag(){if(!attWrap)return;$$("#attachments > *",document).forEach(el=>{if(!el.getAttribute("draggable"))el.setAttribute("draggable","true");});attWrap.addEventListener("dragstart",(e)=>{const it=e.target.closest("#attachments > *");if(!it)return;dragEl=it;e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain","");}catch(_){}it.style.opacity=".55";});attWrap.addEventListener("dragend",()=>{if(dragEl)dragEl.style.opacity="";dragEl=null;});attWrap.addEventListener("dragover",(e)=>{if(!dragEl)return;e.preventDefault();const over=e.target.closest("#attachments > *");if(!over||over===dragEl)return;const rect=over.getBoundingClientRect();const after=(e.clientY-rect.top)>(rect.height/2);over.parentNode.insertBefore(dragEl,after?over.nextSibling:over);});}
+
+  // Timeline
+  const tl=$("#hbTimeline");
+  const timeRe=/(\b\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?(?:Z|[+-]\d{2}:\d{2})?\b)|(\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s+\d{2}:\d{2}:\d{2}\b)/g;
+  function buildTimeline(){if(!tl)return;tl.innerHTML="";const roots=["#message","#authsec","#osintsec","#attachmentssec","#iocssec","#rawsec"].map(id=>document.querySelector(id)).filter(Boolean);const corpus=roots.map(r=>r.textContent||"").join("\n");const matches=[];let m;while((m=timeRe.exec(corpus))!==null){const val=(m[1]||m[2]||"").trim();if(val)matches.push(val);if(matches.length>40)break;}const uniq=Array.from(new Set(matches));const items=uniq.slice(0,25).map((t,i)=>({time:t,title:i===0?"First observed timestamp":"Observed timestamp",body:"Extracted from report content"}));if(!items.length){tl.innerHTML=`<div class="muted" style="padding:10px 2px">No timestamps found. Rely on headers or add notes.</div>`;const ce=document.getElementById("c_timeline");if(ce)ce.textContent="0";return;}items.forEach(it=>{const el=document.createElement("div");el.className="tl-item";el.innerHTML=`<div class="tl-time">${escapeHtml(it.time)}</div><div class="tl-title">${escapeHtml(it.title)}</div><div class="tl-body">${escapeHtml(it.body)}</div>`;tl.appendChild(el);});const ce=document.getElementById("c_timeline");if(ce)ce.textContent=String(items.length);}
+  $("#btnRebuildTimeline")?.addEventListener("click",()=>{buildTimeline();if(typeof window.toast==="function")window.toast("Timeline rebuilt");});
+
+  // MITRE overlay
+  const mitreKey="hb_mitre_on_v1";
+  const mitreGrid=$("#mitreGrid");
+  const tactics=[
+    ["Initial Access",[["T1566.001","Spearphishing Attachment","Attachment lure delivery"],["T1566.002","Spearphishing Link","Link lure delivery"],["T1190","Exploit Public-Facing App","Web app exploitation"]]],
+    ["Execution",[["T1204.001","User Execution: Malicious Link","User clicks to execute"],["T1204.002","User Execution: Malicious File","User opens file"],["T1059","Command and Scripting Interpreter","Shell/script execution"]]],
+    ["Persistence",[["T1136","Create Account","Account persistence"],["T1098","Account Manipulation","Maintaining access"],["T1547","Boot/Logon Autostart","Autostart persistence"]]],
+    ["Defense Evasion",[["T1221","Template Injection","Remote template fetch"],["T1036","Masquerading","Looks legitimate"],["T1027","Obfuscated Files","Obfuscation"],["T1055","Process Injection","Code injection into process"]]],
+    ["Credential Access",[["T1110","Brute Force","Password spraying"],["T1556","Modify Auth Process","Auth flow tampering"],["T1539","Steal Web Session Cookie","Session theft"]]],
+    ["Command and Control",[["T1071","Application Layer Protocol","HTTP(S)/SMTP C2"],["T1568","Dynamic Resolution","Fast flux"],["T1105","Ingress Tool Transfer","Payload delivery"]]],
+    ["Exfiltration",[["T1041","Exfil Over C2 Channel","Data over same channel"],["T1567","Exfil to Cloud Storage","Cloud drop"]]],
+    ["Impact",[["T1486","Data Encrypted for Impact","Ransomware"],["T1496","Resource Hijacking","Crypto mining / compute theft"],["T1499","Endpoint DoS","Availability impact"]]]
+  ];
+  function getOnSet(){return new Set(store.get(mitreKey,[]));}
+  function setOnSet(set){store.set(mitreKey,Array.from(set));}
+  function renderMitre(){if(!mitreGrid)return;const on=getOnSet();mitreGrid.innerHTML="";tactics.forEach(([tac,techs])=>{const col=document.createElement("div");col.className="mitre-col";col.innerHTML=`<h3>${escapeHtml(tac)}</h3>`;techs.forEach(([id,name,desc])=>{const div=document.createElement("div");div.className="tech"+(on.has(id)?" on":"");div.setAttribute("data-tech",id);div.innerHTML=`<strong>${escapeHtml(id)}</strong><small>${escapeHtml(name)}</small>`;div.title=desc;div.addEventListener("click",()=>{const s=getOnSet();if(s.has(id))s.delete(id);else s.add(id);setOnSet(s);renderMitre();});col.appendChild(div);});mitreGrid.appendChild(col);});const ce=document.getElementById("c_mitre");if(ce)ce.textContent=String(getOnSet().size);}
+  function autoMapMitre(){const text=(document.querySelector("main")?.textContent||"").toLowerCase();const map=[["oauth","T1098"],["consent","T1098"],["invoice","T1566.002"],["password","T1110"],["macro","T1204.001"],["attachment","T1566.001"],["powershell","T1059"],["base64","T1027"],["obfus","T1027"],["c2","T1071"],["template injection","T1221"],["process injection","T1055"],["crypto","T1496"],["mining","T1496"],["external rel","T1221"],["http","T1071"]];const s=getOnSet();map.forEach(([k,id])=>{if(text.includes(k))s.add(id);});setOnSet(s);renderMitre();if(typeof window.toast==="function")window.toast("Auto-map applied");}
+  $("#btnAutoMitre")?.addEventListener("click",autoMapMitre);
+  $("#btnClearMitre")?.addEventListener("click",()=>{setOnSet(new Set());renderMitre();if(typeof window.toast==="function")window.toast("MITRE cleared");});
+
+  // IOC collection + export
+  function collectIocs(){const out=[];$$("[data-copy],.ioc,code,.pill").forEach(el=>{const v=el.getAttribute("data-copy")||el.textContent||"";const s=v.trim();if(!s||s.length<6||s.length>140)return;if(/[ \t\n]/.test(s))return;if(/^[0-9a-f]{32,64}$/i.test(s)||/^(\d{1,3}\.){3}\d{1,3}$/.test(s)||/^(https?:\/\/|hxxps?:\/\/)/i.test(s)||/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(s))out.push(s);});return Array.from(new Set(out));}
+  async function copyTextFn(txt){try{await navigator.clipboard.writeText(txt);if(typeof window.toast==="function")window.toast("Copied");return true;}catch(e){const ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.left="-9999px";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(_){}ta.remove();return true;}}
+  $("#btnCopyAllIocs2")?.addEventListener("click",()=>{const iocs=collectIocs();if(!iocs.length){if(typeof window.toast==="function")window.toast("No IOCs found");return;}copyTextFn(iocs.join("\n"));});
+  async function computeHash(text){try{const data=new TextEncoder().encode(text);const hash=await crypto.subtle.digest('SHA-256',data);return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');}catch(e){return'n/a';}}
+  $("#btnExportEvidence")?.addEventListener("click",async()=>{const ident=store.get(identKey,{});const notes=store.get(notesKey,"");const localFiles=store.get(localFilesKey,[]);const mitre=store.get(mitreKey,[]);const iocs=collectIocs();const payload={generated_at:new Date().toISOString(),identity:ident,notes,mitre_techniques:mitre,iocs,local_files:localFiles,source_evidence:evidence};const jsonStr=JSON.stringify(payload,null,2);payload.integrity_sha256=await computeHash(jsonStr);const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=(ident.caseId?ident.caseId:"evidence")+".json";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},250);if(typeof window.toast==="function")window.toast("Exported evidence.json");});
+
+  // Print
+  $("#btnPrint")?.addEventListener("click",()=>window.print());
+
+  // Build
+  renderMitre();
+  buildTimeline();
+  const mo=new MutationObserver(()=>{enableDrag();renderLocalFiles();});
+  if(attWrap)mo.observe(attWrap,{childList:true,subtree:false});
+  enableDrag();
+  renderLocalFiles();
+})();
+</script>
+
+<!-- Script 4: Briefing mode -->
+<script>
+(function(){
+  function qs(sel,root){return(root||document).querySelector(sel);}
+  function qsa(sel,root){return Array.from((root||document).querySelectorAll(sel));}
+  function text(el){return(el&&(el.textContent||'').trim())||'';}
+  function uniq(arr){return Array.from(new Set(arr.filter(Boolean)));}
+
+  function collectIOCs(){const monos=qsa('code,.mono,.hb-chip').map(n=>text(n));return uniq(monos.filter(v=>{const s=v.trim();if(s.length<6||s.length>140)return false;if(/[ \t\n]/.test(s))return false;if(/^[0-9a-f]{32,64}$/i.test(s))return true;if(/^(\d{1,3}\.){3}\d{1,3}$/.test(s))return true;if(/^(https?:\/\/|hxxps?:\/\/)/i.test(s))return true;if(/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(s)&&s.indexOf('..')===-1)return true;return false;}));}
+  function collectTopFindings(){const candidates=qsa('section ul,section ol').filter(l=>l.children&&l.children.length>=2);const best=candidates[0];if(!best)return[];return Array.from(best.children).slice(0,6).map(li=>text(li)).filter(Boolean);}
+
+  function buildBriefing(){
+    const main=qs('.hb-main');if(!main)return;let briefing=qs('#hbBriefing');if(briefing)return;
+    const title=text(qs('.hb-title'))||document.title||'Triage Report';
+    const meta=text(qs('#meta'))||'';const iocs=collectIOCs();const findings=collectTopFindings();
+    briefing=document.createElement('section');briefing.id='hbBriefing';briefing.className='hb-briefing';
+    briefing.innerHTML=`<div class="hb-brief-h"><div><div class="hb-brief-title">Briefing Packet</div><div class="hb-brief-sub">${title}${meta?' - '+meta:''}</div></div><div class="hb-brief-kpis"><span class="hb-pill"><b>IOCs</b>&nbsp;${iocs.length}</span><span class="hb-pill"><b>Mode</b>&nbsp;Executive</span></div></div><div class="hb-brief-grid"><div class="hb-brief-card"><h3>Assessment</h3><div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px;"><button class="hb-btn" id="hbBriefCopyAll" title="Copy all IOCs">Copy All IOCs</button><button class="hb-btn" id="hbBriefExport" title="Export">Export evidence.json</button></div>${findings.length?`<ul class="hb-brief-list">${findings.map(f=>`<li>${f}</li>`).join('')}</ul>`:`<div class="muted">Full report contains details.</div>`}</div><div class="hb-brief-card"><h3>Key Artifacts</h3>${iocs.length?`<div class="hb-brief-chips">${iocs.slice(0,18).map(i=>`<span class="hb-chip" data-copy="${i.replace(/"/g,'&quot;')}">${i}</span>`).join('')}</div><div class="muted" style="margin-top:10px;">Showing first ${Math.min(18,iocs.length)} of ${iocs.length}. Click to copy.</div>`:`<div class="muted">No IOCs detected.</div>`}</div></div><div class="muted" style="margin-top:10px;">Tip: Press <span class="hb-kbd">B</span> to toggle Briefing Mode.</div>`;
+    main.insertBefore(briefing,main.firstElementChild);
+    briefing.addEventListener('click',async(e)=>{const chip=e.target.closest('.hb-chip[data-copy]');if(!chip)return;try{await navigator.clipboard.writeText(chip.getAttribute('data-copy'));window.hbToast&&window.hbToast('Copied');}catch(_){}});
+    qs('#hbBriefCopyAll',briefing)?.addEventListener('click',async()=>{const all=collectIOCs();try{await navigator.clipboard.writeText(all.join('\n'));window.hbToast&&window.hbToast(`Copied ${all.length} IOCs`);}catch(_){}});
+    qs('#hbBriefExport',briefing)?.addEventListener('click',()=>{const payload={generated_at:new Date().toISOString(),mode:"briefing",iocs:collectIOCs()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='evidence-briefing.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},250);window.hbToast&&window.hbToast('Exported');});
+  }
+
+  function ensureHeaderButtons(){const header=qs('.hb-header');if(!header||qs('#hbBriefToggle'))return;const actions=document.createElement('div');actions.className='hb-header-actions';actions.innerHTML=`<button id="hbBriefToggle" class="hb-btn" title="Toggle Briefing Mode (B)">Briefing</button><button id="hbExecToggle" class="hb-btn" title="Exec/Ops toggle (X)">Exec</button><button id="hbPosterToggle" class="hb-btn" title="Poster Mode (P)">Poster</button><button id="hbBriefPrint" class="hb-btn" title="Print">Print</button>`;header.appendChild(actions);qs('#hbBriefToggle')?.addEventListener('click',()=>toggleBriefing());qs('#hbExecToggle')?.addEventListener('click',()=>toggleExec());qs('#hbPosterToggle')?.addEventListener('click',()=>togglePoster());qs('#hbBriefPrint')?.addEventListener('click',()=>{window.print();});}
+  function toggleBriefing(forceOn){buildBriefing();const on=(typeof forceOn==='boolean')?forceOn:!document.body.classList.contains('briefing-mode');document.body.classList.toggle('briefing-mode',on);if(on){document.body.classList.remove('exec-mode','poster-mode');}try{localStorage.setItem('hb_briefing_mode',on?'1':'0');}catch(_){}window.hbToast&&window.hbToast(on?'Briefing Mode':'Full Report');}
+  function toggleExec(){const on=!document.body.classList.contains('exec-mode');document.body.classList.toggle('exec-mode',on);if(on){document.body.classList.remove('briefing-mode','poster-mode');}try{localStorage.setItem('hb.mode',on?'exec':'ops');}catch(_){}window.hbToast&&window.hbToast(on?'Exec View':'Ops View');}
+  function togglePoster(){const on=!document.body.classList.contains('poster-mode');document.body.classList.toggle('poster-mode',on);if(on){document.body.classList.remove('briefing-mode','exec-mode');}try{localStorage.setItem('hb.poster',on?'1':'0');}catch(_){}window.hbToast&&window.hbToast(on?'Poster Mode':'Standard Layout');}
+  document.addEventListener('keydown',(e)=>{if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;if(e.key==='b'||e.key==='B'){e.preventDefault();toggleBriefing();}if(e.key==='x'||e.key==='X'){e.preventDefault();toggleExec();}if(e.key==='p'&&!e.ctrlKey&&!e.metaKey){e.preventDefault();togglePoster();}});
+  document.addEventListener('DOMContentLoaded',()=>{ensureHeaderButtons();buildBriefing();try{if(localStorage.getItem('hb_briefing_mode')==='1')toggleBriefing(true);if(localStorage.getItem('hb.mode')==='exec')toggleExec();if(localStorage.getItem('hb.poster')==='1')togglePoster();}catch(_){}});
+})();
+</script>
+</body>
+</html>
