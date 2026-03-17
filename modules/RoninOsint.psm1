@@ -664,7 +664,7 @@ function Invoke-UsernameVariants {
       & $add $last
     }
     & $add ($local -replace '\d+', '')
-    ,$out.ToArray()
+    $out.ToArray()
 }
 
 function Invoke-Sherlock {
@@ -874,7 +874,7 @@ function Invoke-RedditPersona {
     $peakHour   = ($postHours | Select-Object -First 1).Name
     $inferredTZ = if ($peakHour) { "Peak UTC hour: $peakHour (inferred local ~$(($peakHour + 8) % 24) EST)" } else { 'Insufficient data' }
 
-    $allText     = ($allContent | ForEach-Object { $_.body ?? $_.selftext ?? $_.title ?? '' }) -join ' '
+    $allText     = ($allContent | ForEach-Object { $b = $_.body; $s = $_.selftext; $t = $_.title; if ($b) { $b } elseif ($s) { $s } elseif ($t) { $t } else { '' } }) -join ' '
     $allTextLow  = $allText.ToLower()
     $threatHits  = $script:ThreatKeywords | Where-Object { $allTextLow -match [regex]::Escape($_) }
 
