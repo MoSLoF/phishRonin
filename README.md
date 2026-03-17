@@ -57,3 +57,26 @@ phishRonin/
 - Add robust EML/MIME parsing for attachments (System.Net.Mail is limited; consider a MIME parser).
 - Implement Graph token acquisition (client secret or certificate) with minimum scopes.
 - Add allow-listing and domain reputation sources (optional).
+
+
+---
+
+## HoneyBadger Vanguard
+
+**Part of the [HoneyBadger Vanguard (HBV)](https://ihbv.io) purple team ecosystem.**
+
+PowerShell phishing triage toolkit — static analysis, IOC extraction, M365 quarantine workflow.
+
+```powershell
+$global:Intent = 'Purple'  # Understand offense. Build better defense.
+```
+
+| | |
+|---|---|
+| **Org** | [MoSLoF on GitHub](https://github.com/MoSLoF) |
+| **Platform** | HoneyBadger Vanguard 2.0 |
+| **Demo Target** | CyberShield 2026 - Little Rock, AR |
+| **License** | See LICENSE |
+
+> The difference between a red team tool and a purple team tool is intent.
+> -- $global:Intent = 'Purple'
