@@ -766,7 +766,10 @@ function Invoke-WhatsMyName {
       Invoke-WebRequest -Uri $script:IdentityConfig.WhatsMyName.DbUrl -OutFile $dbPath -UseBasicParsing
     }
     $dbObj = Get-Content $dbPath -Raw | ConvertFrom-Json
-    $db    = if ($dbObj.PSObject.Properties['websites']) { @($dbObj.websites) } else { @($dbObj) }
+    # WMN schema uses 'sites' key (not 'websites')
+    $db    = if ($dbObj.PSObject.Properties['sites'])    { @($dbObj.sites) } `
+             elseif ($dbObj.PSObject.Properties['websites']) { @($dbObj.websites) } `
+             else { @($dbObj) }
     $sites = if ($Categories) { @($db | Where-Object { $_.category -in $Categories }) } else { $db }
     Write-Verbose "WhatsMyName: $Username across $($sites.Count) sites"
     $found     = [System.Collections.Concurrent.ConcurrentBag[PSCustomObject]]::new()
@@ -844,7 +847,10 @@ function Invoke-RedditPersona {
       $about = Invoke-RestMethod -Uri "$($script:IdentityConfig.Reddit.BaseUrl)/user/$Username/about.json" `
                  -Headers $headers -TimeoutSec 15
     } catch {
-      if ($_.Exception.Response?.StatusCode -eq 404) {
+      $statusCode = if ($_.Exception.PSObject.Properties['Response'] -and $_.Exception.Response -and
+                        $_.Exception.Response.PSObject.Properties['StatusCode']) {
+                      $_.Exception.Response.StatusCode } else { $null }
+      if ($statusCode -eq 404) {
         return [PSCustomObject]@{ PSTypeName='PhishRonin.RedditPersonaResult'; Username=$Username; Exists=$false; Error='Account not found' }
       }
       throw
