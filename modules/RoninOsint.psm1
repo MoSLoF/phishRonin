@@ -883,7 +883,7 @@ function Invoke-RedditPersona {
       $val
     }) -join ' '
     $allTextLow  = $allText.ToLower()
-    $threatHits  = $script:ThreatKeywords | Where-Object { $allTextLow -match [regex]::Escape($_) }
+    $threatHits  = @($script:ThreatKeywords | Where-Object { $allTextLow -match [regex]::Escape($_) })
 
     $scoreAdd = 0; $flags = [System.Collections.Generic.List[string]]::new()
     if ($acct.total_karma -gt 100)    { $scoreAdd += $script:IdentityConfig.Scoring.RedditAccountFound }
@@ -902,8 +902,8 @@ function Invoke-RedditPersona {
       PostKarma          = $acct.link_karma
       CommentKarma       = $acct.comment_karma
       IsSuspended        = [bool]$acct.is_suspended
-      PostCount          = ($allContent | Where-Object { $_.selftext -ne $null }).Count
-      CommentCount       = ($allContent | Where-Object { $_.body    -ne $null }).Count
+      PostCount          = @($allContent | Where-Object { $_.PSObject.Properties['selftext'] -and $null -ne $_.selftext }).Count
+      CommentCount       = @($allContent | Where-Object { $_.PSObject.Properties['body']     -and $null -ne $_.body }).Count
       TopSubreddits      = $subreddits
       InferredTimezone   = $inferredTZ
       PeakActivityHour   = $peakHour
