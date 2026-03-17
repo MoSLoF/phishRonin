@@ -178,12 +178,17 @@ function Invoke-H8Mail {
         Write-Warning "h8mail produced no output. Check stderr: $outputDir\stderr_$sid.txt"
         return
       }
-      foreach ($entry in (Get-Content $outFile -Raw | ConvertFrom-Json)) {
-        $breaches = @($entry.results | Where-Object { $_.type -eq 'breach' } | ForEach-Object { $_.source })
-        $pwCount  = ($entry.results | Where-Object { $_.data -match 'password|passwd' }).Count
+      $parsed = Get-Content $outFile -Raw | ConvertFrom-Json
+      foreach ($entry in @($parsed)) {
+        # h8mail JSON schema: .target, .breaches (int), .data (array of {breach, data[]})
+        $dataItems = if ($entry.PSObject.Properties['data'] -and $entry.data) { @($entry.data) } else { @() }
+        $breaches  = @($dataItems | ForEach-Object {
+          if ($_.PSObject.Properties['breach'] -and $_.breach) { $_.breach } })
+        $pwCount   = @($dataItems | Where-Object {
+          $_.PSObject.Properties['data'] -and ($_.data -join ' ') -match 'password|passwd' }).Count
         [PSCustomObject]@{
           PSTypeName        = 'PhishRonin.H8MailResult'
-          Email             = $entry.target
+          Email             = if ($entry.PSObject.Properties['target']) { $entry.target } else { '' }
           BreachCount       = $breaches.Count
           BreachSources     = $breaches
           PasswordsFound    = ($pwCount -gt 0)
