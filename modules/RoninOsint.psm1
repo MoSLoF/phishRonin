@@ -649,7 +649,7 @@ function Invoke-UsernameVariants {
   #>
   [CmdletBinding()]
   [OutputType([string[]])]
-  param([Parameter(Mandatory, ValueFromPipeline)][string]$Email)
+  param([Parameter(Mandatory=$true, ValueFromPipeline=$true)][string]$Email)
   process {
     $local    = ($Email -split '@')[0].ToLower()
     $variants = [System.Collections.Generic.HashSet[string]]::new()
@@ -690,7 +690,7 @@ function Invoke-Sherlock {
   [CmdletBinding()]
   [OutputType([PSCustomObject])]
   param(
-    [Parameter(Mandatory, ValueFromPipeline)][string]$Username,
+    [Parameter(Mandatory=$true, ValueFromPipeline=$true)][string]$Username,
     [Parameter()][int]$TimeoutPerSite = 15,
     [Parameter()][string]$PythonExe = $script:IdentityConfig.Sherlock.PythonExe
   )
@@ -757,7 +757,7 @@ function Invoke-WhatsMyName {
   [CmdletBinding()]
   [OutputType([PSCustomObject])]
   param(
-    [Parameter(Mandatory, ValueFromPipeline)][string]$Username,
+    [Parameter(Mandatory=$true, ValueFromPipeline=$true)][string]$Username,
     [Parameter()][switch]$UpdateDb,
     [Parameter()][string[]]$Categories,
     [Parameter()][int]$MaxWorkers = $script:IdentityConfig.WhatsMyName.MaxWorkers
@@ -835,7 +835,7 @@ function Invoke-RedditPersona {
   [CmdletBinding()]
   [OutputType([PSCustomObject])]
   param(
-    [Parameter(Mandatory, ValueFromPipeline)][string]$Username,
+    [Parameter(Mandatory=$true, ValueFromPipeline=$true)][string]$Username,
     [Parameter()][int]$PostLimit = $script:IdentityConfig.Reddit.PostLimit
   )
   process {
@@ -940,7 +940,7 @@ function Invoke-RoninIdentityPivot {
   [CmdletBinding()]
   [OutputType([PSCustomObject])]
   param(
-    [Parameter(Mandatory, ValueFromPipeline)][string]$Email,
+    [Parameter(Mandatory=$true, ValueFromPipeline=$true)][string]$Email,
     [Parameter()][switch]$SkipSherlock,
     [Parameter()][switch]$SkipWhatsMyName,
     [Parameter()][string]$RedditUsername
@@ -990,7 +990,7 @@ function Invoke-RoninIdentityPivot {
     }
 
     Write-Host "  [+] Identity: $($allAccounts.Count) accounts | Reddit: $(if($redditResult?.Exists){'PROFILED'}else{'N/A'}) | Risk: $riskLevel" -ForegroundColor $(
-      switch ($riskLevel) { 'CRITICAL'{'Red'} 'HIGH'{'Yellow'} 'MEDIUM'{'Magenta'} default{'Green'} }
+      switch ($riskLevel) { 'CRITICAL' {'Red'} 'HIGH' {'Yellow'} 'MEDIUM' {'Magenta'} default {'Green'} }
     )
 
     return [PSCustomObject]@{
@@ -1022,3 +1022,4 @@ Export-ModuleMember -Function `
   Get-RoninThreatClassification, New-RoninOsintLinks, Show-RoninOsint, `
   Invoke-UsernameVariants, Invoke-Sherlock, Invoke-WhatsMyName, `
   Invoke-RedditPersona, Invoke-RoninIdentityPivot
+
