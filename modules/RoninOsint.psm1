@@ -874,7 +874,14 @@ function Invoke-RedditPersona {
     $peakHour   = ($postHours | Select-Object -First 1).Name
     $inferredTZ = if ($peakHour) { "Peak UTC hour: $peakHour (inferred local ~$(($peakHour + 8) % 24) EST)" } else { 'Insufficient data' }
 
-    $allText     = ($allContent | ForEach-Object { $b = $_.body; $s = $_.selftext; $t = $_.title; if ($b) { $b } elseif ($s) { $s } elseif ($t) { $t } else { '' } }) -join ' '
+    $allText     = ($allContent | ForEach-Object {
+      $item = $_
+      $val  = ''
+      if ($item.PSObject.Properties['body']     -and $item.body)     { $val = $item.body }
+      elseif ($item.PSObject.Properties['selftext'] -and $item.selftext) { $val = $item.selftext }
+      elseif ($item.PSObject.Properties['title']    -and $item.title)    { $val = $item.title }
+      $val
+    }) -join ' '
     $allTextLow  = $allText.ToLower()
     $threatHits  = $script:ThreatKeywords | Where-Object { $allTextLow -match [regex]::Escape($_) }
 
