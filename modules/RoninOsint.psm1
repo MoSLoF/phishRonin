@@ -765,7 +765,8 @@ function Invoke-WhatsMyName {
       Write-Verbose "Downloading WhatsMyName database..."
       Invoke-WebRequest -Uri $script:IdentityConfig.WhatsMyName.DbUrl -OutFile $dbPath -UseBasicParsing
     }
-    $db    = (Get-Content $dbPath -Raw | ConvertFrom-Json).websites
+    $dbObj = Get-Content $dbPath -Raw | ConvertFrom-Json
+    $db    = if ($dbObj.PSObject.Properties['websites']) { $dbObj.websites } else { @($dbObj) }
     $sites = if ($Categories) { $db | Where-Object { $_.category -in $Categories } } else { $db }
     Write-Verbose "WhatsMyName: $Username across $($sites.Count) sites"
     $found     = [System.Collections.Concurrent.ConcurrentBag[PSCustomObject]]::new()

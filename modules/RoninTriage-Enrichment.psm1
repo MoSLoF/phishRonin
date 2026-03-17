@@ -36,12 +36,12 @@ $script:TriageEnrichConfig = @{
     TimeoutSec = 15
   }
   H8Mail = @{
-    PythonExe  = 'python3'
+    PythonExe  = 'python'
     OutputDir  = "$env:TEMP\ronin_h8mail"
     TimeoutSec = 120
   }
   Holehe = @{
-    PythonExe  = 'python3'
+    PythonExe  = 'python'
     TimeoutSec = 90
   }
   Scoring = @{
@@ -228,8 +228,8 @@ function Invoke-Holehe {
     Write-Verbose "Holehe pivot: $Email"
     try {
       $cliResult  = & $PythonExe -m holehe $Email --only-used 2>&1
-      $registered = $cliResult | Where-Object { $_ -match '\[.*\+.*\]|\[✔\]' } |
-                    ForEach-Object { ($_ -split '\s+' | Where-Object { $_ })[1] }
+      $registered = @($cliResult | Where-Object { $_ -match '\[.*\+.*\]|\[✔\]' } |
+                    ForEach-Object { ($_ -split '\s+' | Where-Object { $_ })[1] })
       $scoreAdd = [Math]::Min(($registered.Count / 5) * $script:TriageEnrichConfig.Scoring.AccountsFound, 50)
       return [PSCustomObject]@{
         PSTypeName        = 'PhishRonin.HoleheResult'
