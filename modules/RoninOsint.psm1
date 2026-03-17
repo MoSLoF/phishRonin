@@ -648,28 +648,23 @@ function Invoke-UsernameVariants {
       Invoke-UsernameVariants -Email "john.doe@gmail.com"
   #>
   [CmdletBinding()]
-  [OutputType([string[]])]
-  param([Parameter(Mandatory=$true, ValueFromPipeline=$true)][string]$Email)
-  process {
+  param([Parameter(Mandatory=$true)][string]$Email)
     $local    = ($Email -split '@')[0].ToLower()
-    $variants = [System.Collections.Generic.HashSet[string]]::new()
-    [void]$variants.Add($local)
-    $clean = $local -replace '[._\-]', ''
-    [void]$variants.Add($clean)
+    $seen     = [System.Collections.Generic.HashSet[string]]::new()
+    $out      = [System.Collections.Generic.List[string]]::new()
+    $add      = { param($v) if ($v -and $v.Length -ge 3 -and $seen.Add($v)) { $out.Add($v) } }
+    & $add $local
+    & $add ($local -replace '[._\-]', '')
     $parts = $local -split '[._\-]'
     if ($parts.Count -ge 2) {
       $first = $parts[0]; $last = $parts[-1]
       foreach ($v in @("$first$last","$first.$last","$first`_$last",
-                       "$($first[0])$last","$first$($last[0])")) {
-        [void]$variants.Add($v)
-      }
-      if ($first.Length -ge 3) { [void]$variants.Add($first) }
-      if ($last.Length  -ge 3) { [void]$variants.Add($last)  }
+                       "$($first[0])$last","$first$($last[0])")) { & $add $v }
+      & $add $first
+      & $add $last
     }
-    $noNums = $local -replace '\d+', ''
-    if ($noNums -ne $local -and $noNums.Length -ge 3) { [void]$variants.Add($noNums) }
-    return [string[]]@($variants.ToArray() | Where-Object { $_.Length -ge 3 })
-  }
+    & $add ($local -replace '\d+', '')
+    ,$out.ToArray()
 }
 
 function Invoke-Sherlock {
