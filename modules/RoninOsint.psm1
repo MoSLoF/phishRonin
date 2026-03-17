@@ -952,7 +952,7 @@ function Invoke-RoninIdentityPivot {
     Write-Host "  [*] Identity Pivot: $Email" -ForegroundColor Magenta
 
     Write-Host "  [->] Username variants..." -ForegroundColor DarkMagenta
-    $usernames = Invoke-UsernameVariants -Email $Email
+    $usernames = @(Invoke-UsernameVariants -Email $Email)
     Write-Host "      $($usernames -join ', ')" -ForegroundColor DarkGray
 
     $sherlockResults = @(); $wmnResults = @(); $redditResult = $null
