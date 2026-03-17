@@ -775,34 +775,37 @@ function Invoke-WhatsMyName {
     Write-Verbose "WhatsMyName: $Username across $($sites.Count) sites"
     $found     = [System.Collections.Concurrent.ConcurrentBag[PSCustomObject]]::new()
     $semaphore = [System.Threading.SemaphoreSlim]::new($MaxWorkers, $MaxWorkers)
-    $jobs = $sites | ForEach-Object {
-      $site = $_
+    $jobs = $sites | ForEach-Object -ThrottleLimit $MaxWorkers -Parallel {
+      $site      = $_
+      $found     = $using:found
+      $semaphore = $using:semaphore
+      $Username  = $using:Username
       $semaphore.Wait()
-      [System.Threading.Tasks.Task]::Run({
-        try {
-          $url  = $site.uri_check -replace '{account}', $Username
-          $resp = Invoke-WebRequest -Uri $url -Method GET -UserAgent 'PhishRonin/2.0' `
-                    -TimeoutSec 10 -UseBasicParsing -ErrorAction SilentlyContinue
-          if ($resp) {
-            $hit = if ($site.e_code -gt 0) { $resp.StatusCode -eq $site.e_code } `
-                   else {
-                     $resp.Content -match [regex]::Escape($site.m_string) -and
-                     -not ($resp.Content -match [regex]::Escape($site.m_string_false ?? '###NOMATCH###'))
-                   }
-            if ($hit) {
-              $found.Add([PSCustomObject]@{
-                Site     = $site.name
-                URL      = $site.uri_pretty -replace '{account}', $Username
-                Category = $site.category
-                Status   = 'FOUND'
-              })
-            }
+      try {
+        $checkUrl = $site.uri_check -replace '{account}', $Username
+        $resp = Invoke-WebRequest -Uri $checkUrl -Method GET -UserAgent 'PhishRonin/2.0' `
+                  -TimeoutSec 10 -UseBasicParsing -ErrorAction SilentlyContinue
+        if ($resp) {
+          $falseStr = if ($site.m_string_false) { $site.m_string_false } else { '###NOMATCH###' }
+          $hit = if ($site.e_code -gt 0) {
+            $resp.StatusCode -eq $site.e_code
+          } else {
+            ($resp.Content -match [regex]::Escape($site.m_string)) -and
+            -not ($resp.Content -match [regex]::Escape($falseStr))
           }
-        } catch {}
-        finally { $semaphore.Release() | Out-Null }
-      })
+          if ($hit) {
+            $prettyUrl = $site.uri_pretty -replace '{account}', $Username
+            $found.Add([PSCustomObject]@{
+              Site     = $site.name
+              URL      = $prettyUrl
+              Category = $site.category
+              Status   = 'FOUND'
+            })
+          }
+        }
+      } catch {}
+      finally { $semaphore.Release() | Out-Null }
     }
-    [System.Threading.Tasks.Task]::WaitAll($jobs)
     $results = $found.ToArray() | Sort-Object Site
     return [PSCustomObject]@{
       PSTypeName        = 'PhishRonin.WMNResult'
@@ -985,12 +988,14 @@ function Invoke-RoninIdentityPivot {
     $allAccounts = @(@($sherlockResults | ForEach-Object { $_.Accounts }); @($wmnResults | ForEach-Object { $_.Accounts }))
     $totalScore  = ((@($sherlockResults) + @($wmnResults) | ForEach-Object { $_.ScoreContribution ?? 0 }) + ($redditResult?.ScoreContribution ?? 0) | Measure-Object -Sum).Sum
     $riskLevel   = switch ($totalScore) {
-      { $_ -ge 75 } { 'CRITICAL' } { $_ -ge 50 } { 'HIGH' }
-      { $_ -ge 25 } { 'MEDIUM'  } default { 'LOW' }
+      { $_ -ge 75 } { 'CRITICAL' }
+      { $_ -ge 50 } { 'HIGH' }
+      { $_ -ge 25 } { 'MEDIUM' }
+      default       { 'LOW' }
     }
 
     Write-Host "  [+] Identity: $($allAccounts.Count) accounts | Reddit: $(if($redditResult?.Exists){'PROFILED'}else{'N/A'}) | Risk: $riskLevel" -ForegroundColor $(
-      switch ($riskLevel) { 'CRITICAL' {'Red'} 'HIGH' {'Yellow'} 'MEDIUM' {'Magenta'} default {'Green'} }
+      switch ($riskLevel) { 'CRITICAL' { 'Red' } 'HIGH' { 'Yellow' } 'MEDIUM' { 'Magenta' } default { 'Green' } }
     )
 
     return [PSCustomObject]@{
