@@ -607,7 +607,7 @@ function Show-RoninOsint {
 
 $script:IdentityConfig = @{
   Sherlock = @{
-    PythonExe  = 'python3'
+    PythonExe  = 'python'
     TimeoutSec = 180
     OutputDir  = "$env:TEMP\ronin_sherlock"
   }
