@@ -849,7 +849,8 @@ function Invoke-RedditPersona {
       throw
     }
     $acct       = $about.data
-    $created    = [DateTimeOffset]::FromUnixTimeSeconds($acct.created_utc).UtcDateTime
+    $getP = { param($obj,$prop,$default) if ($obj.PSObject.Properties[$prop]) { $obj.$prop } else { $default } }
+    $created    = [DateTimeOffset]::FromUnixTimeSeconds((& $getP $acct 'created_utc' 0)).UtcDateTime
     $accountAge = (Get-Date) - $created
 
     # Fetch posts and comments
@@ -866,11 +867,12 @@ function Invoke-RedditPersona {
       } while ($after -and $allContent.Count -lt $PostLimit)
     }
 
-    $subreddits = $allContent | Group-Object subreddit | Sort-Object Count -Descending |
+    $subreddits = $allContent | Group-Object { if ($_.PSObject.Properties['subreddit']) { $_.subreddit } else { '' } } |
+                  Where-Object { $_.Name } | Sort-Object Count -Descending |
                   Select-Object -First 20 | ForEach-Object { [PSCustomObject]@{ Subreddit=$_.Name; Count=$_.Count } }
 
-    $postHours  = $allContent | ForEach-Object { [DateTimeOffset]::FromUnixTimeSeconds($_.created_utc).Hour } |
-                  Group-Object | Sort-Object Count -Descending
+    $postHours  = $allContent | ForEach-Object { if ($_.PSObject.Properties['created_utc'] -and $_.created_utc) { [DateTimeOffset]::FromUnixTimeSeconds($_.created_utc).Hour } } |
+                  Where-Object { $null -ne $_ } | Group-Object | Sort-Object Count -Descending
     $peakHour   = ($postHours | Select-Object -First 1).Name
     $inferredTZ = if ($peakHour) { "Peak UTC hour: $peakHour (inferred local ~$(($peakHour + 8) % 24) EST)" } else { 'Insufficient data' }
 
@@ -885,12 +887,17 @@ function Invoke-RedditPersona {
     $allTextLow  = $allText.ToLower()
     $threatHits  = @($script:ThreatKeywords | Where-Object { $allTextLow -match [regex]::Escape($_) })
 
+    $totalKarma  = [int](& $getP $acct 'total_karma'  0)
+    $linkKarma   = [int](& $getP $acct 'link_karma'    0)
+    $commKarma   = [int](& $getP $acct 'comment_karma' 0)
+    $isSuspended = [bool](& $getP $acct 'is_suspended' $false)
+
     $scoreAdd = 0; $flags = [System.Collections.Generic.List[string]]::new()
-    if ($acct.total_karma -gt 100)    { $scoreAdd += $script:IdentityConfig.Scoring.RedditAccountFound }
+    if ($totalKarma -gt 100)          { $scoreAdd += $script:IdentityConfig.Scoring.RedditAccountFound }
     if ($threatHits.Count -gt 0)      { $scoreAdd += $script:IdentityConfig.Scoring.ThreatActorKeyword * [Math]::Min($threatHits.Count, 3)
                                          $flags.Add("THREAT_KW:$($threatHits -join ',')") }
     if ($accountAge.TotalDays -lt 30) { $scoreAdd += $script:IdentityConfig.Scoring.NewAccount; $flags.Add('NEW_ACCOUNT') }
-    if ($acct.is_suspended)           { $scoreAdd += 15; $flags.Add('SUSPENDED') }
+    if ($isSuspended)                 { $scoreAdd += 15; $flags.Add('SUSPENDED') }
 
     return [PSCustomObject]@{
       PSTypeName         = 'PhishRonin.RedditPersonaResult'
@@ -898,10 +905,10 @@ function Invoke-RedditPersona {
       Exists             = $true
       AccountCreated     = $created
       AccountAgeDays     = [int]$accountAge.TotalDays
-      TotalKarma         = $acct.total_karma
-      PostKarma          = $acct.link_karma
-      CommentKarma       = $acct.comment_karma
-      IsSuspended        = [bool]$acct.is_suspended
+      TotalKarma         = $totalKarma
+      PostKarma          = $linkKarma
+      CommentKarma       = $commKarma
+      IsSuspended        = $isSuspended
       PostCount          = @($allContent | Where-Object { $_.PSObject.Properties['selftext'] -and $null -ne $_.selftext }).Count
       CommentCount       = @($allContent | Where-Object { $_.PSObject.Properties['body']     -and $null -ne $_.body }).Count
       TopSubreddits      = $subreddits
