@@ -668,7 +668,7 @@ function Invoke-UsernameVariants {
     }
     $noNums = $local -replace '\d+', ''
     if ($noNums -ne $local -and $noNums.Length -ge 3) { [void]$variants.Add($noNums) }
-    return $variants.ToArray() | Where-Object { $_.Length -ge 3 }
+    return [string[]]@($variants.ToArray() | Where-Object { $_.Length -ge 3 })
   }
 }
 
